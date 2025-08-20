@@ -88,7 +88,6 @@ IconCrafter/
 ├── IconCrafter.sln              # 解决方案文件
 ├── IconCrafter_Installer.nsi    # NSIS安装脚本
 ├── IconCrafter_Setup.exe        # 生成的安装包
-├── Release_PKG/                 # 发布文件目录
 ├── LICENSE.txt                  # 许可证文件
 ├── .gitignore                   # Git忽略文件
 └── README.md                    # 说明文档
