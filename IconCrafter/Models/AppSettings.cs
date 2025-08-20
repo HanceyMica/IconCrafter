@@ -19,7 +19,7 @@ namespace IconCrafter.Models
         /// <summary>
         /// 默认尺寸列表
         /// </summary>
-        public List<int> DefaultSizes { get; set; } = new() { 32, 64, 128, 256 };
+        public List<int> DefaultSizes { get; set; } = new() { 32, 64, 128, 256, 512 };
         
         /// <summary>
         /// 是否记住上次使用的目录
@@ -44,7 +44,8 @@ namespace IconCrafter.Models
             { 32, true },
             { 64, true },
             { 128, true },
-            { 256, true }
+            { 256, true },
+            { 512, true }
         };
         
         /// <summary>

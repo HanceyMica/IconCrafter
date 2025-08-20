@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using IconCrafter.Commands;
@@ -28,10 +29,14 @@ namespace IconCrafter.ViewModels
         private bool _isConverting;
         private string _statusMessage = "请选择要转换的图片文件";
         private bool _isSingleFile = true;
+        private double _progressValue = 0;
+        private string _progressText = "";
+        private string _customFileName = "";
         private bool _size32Selected = true;
         private bool _size64Selected = true;
         private bool _size128Selected = true;
         private bool _size256Selected = true;
+        private bool _size512Selected = true;
         private readonly SettingsService _settingsService;
         private readonly ILogger _logger;
         
@@ -68,9 +73,11 @@ namespace IconCrafter.ViewModels
                     Size64Selected = settings.DefaultSelectedSizes.GetValueOrDefault(64, true);
                     Size128Selected = settings.DefaultSelectedSizes.GetValueOrDefault(128, true);
                     Size256Selected = settings.DefaultSelectedSizes.GetValueOrDefault(256, true);
+                    Size512Selected = settings.DefaultSelectedSizes.GetValueOrDefault(512, true);
                 }
                 
                 IsSingleFile = settings.DefaultSingleFile;
+                CustomFileName = settings.DefaultFileName;
                 
                 await _logger.LogInfoAsync("应用程序设置初始化完成");
             }
@@ -186,6 +193,42 @@ namespace IconCrafter.ViewModels
         }
         
         /// <summary>
+        /// 512x512尺寸是否选中
+        /// </summary>
+        public bool Size512Selected
+        {
+            get => _size512Selected;
+            set => SetProperty(ref _size512Selected, value);
+        }
+        
+        /// <summary>
+        /// 进度值 (0-100)
+        /// </summary>
+        public double ProgressValue
+        {
+            get => _progressValue;
+            set => SetProperty(ref _progressValue, value);
+        }
+        
+        /// <summary>
+        /// 进度文本
+        /// </summary>
+        public string ProgressText
+        {
+            get => _progressText;
+            set => SetProperty(ref _progressText, value);
+        }
+        
+        /// <summary>
+        /// 自定义文件名
+        /// </summary>
+        public string CustomFileName
+        {
+            get => _customFileName;
+            set => SetProperty(ref _customFileName, value);
+        }
+        
+        /// <summary>
         /// 是否可以执行转换
         /// </summary>
         public bool CanConvert => !string.IsNullOrEmpty(InputFilePath) && 
@@ -256,6 +299,8 @@ namespace IconCrafter.ViewModels
                 return;
             
             IsConverting = true;
+            ProgressValue = 0;
+            ProgressText = "初始化...";
             UpdateStatus("开始转换...");
             
             try
@@ -309,6 +354,8 @@ namespace IconCrafter.ViewModels
             finally
             {
                 IsConverting = false;
+                ProgressValue = 0;
+                ProgressText = "";
             }
         }
         
@@ -335,15 +382,65 @@ namespace IconCrafter.ViewModels
             if (IsSingleFile)
             {
                 // 生成单个包含所有尺寸的ICO文件
-                var outputPath = Path.Combine(OutputDirectory!, "favicon.ico");
+                ProgressValue = 0;
+                ProgressText = "准备生成ICO文件...";
+                
+                // 使用自定义文件名或默认文件名
+                var fileName = string.IsNullOrWhiteSpace(CustomFileName) ? "favicon.ico" : 
+                              (CustomFileName.EndsWith(".ico", StringComparison.OrdinalIgnoreCase) ? CustomFileName : $"{CustomFileName}.ico");
+                var outputPath = Path.Combine(OutputDirectory!, fileName);
+                
+                ProgressValue = 50;
+                ProgressText = "正在生成ICO文件...";
+                
                 await _imageConverter.GenerateSingleIcoFileAsync(InputFilePath!, outputPath, selectedSizes);
+                
+                ProgressValue = 100;
+                ProgressText = "转换完成";
+                
                 UpdateStatus($"成功生成ICO文件: {outputPath}");
             }
             else
             {
-                // 为每个尺寸生成单独的ICO文件
-                var results = await _imageConverter.GenerateMultipleIcoFilesAsync(InputFilePath!, OutputDirectory!, selectedSizes);
-                UpdateStatus($"成功生成 {results.Count} 个ICO文件:\n{string.Join("\n", results)}");
+                // 使用并行处理为每个尺寸生成单独的ICO文件
+                ProgressValue = 0;
+                ProgressText = "准备批量处理...";
+                
+                var progress = new Progress<BatchProcessProgress>(p => 
+                {
+                    var progressPercent = p.TotalFiles > 0 ? (double)p.CompletedFiles / p.TotalFiles * 100 : 0;
+                    ProgressValue = progressPercent;
+                    ProgressText = $"正在处理 {Path.GetFileName(p.CurrentFile)} ({p.CompletedFiles}/{p.TotalFiles})";
+                    UpdateStatus($"正在处理... ({p.CompletedFiles}/{p.TotalFiles}) - {p.CurrentFile}");
+                });
+                
+                var result = await _imageConverter.BatchProcessAsync(
+                    new List<string> { InputFilePath! }, 
+                    OutputDirectory!, 
+                    selectedSizes, 
+                    progress, 
+                    CancellationToken.None);
+                
+                ProgressValue = 100;
+                ProgressText = "处理完成";
+                
+                var successfulResults = result.Where(r => r.Success).ToList();
+                var failedResults = result.Where(r => !r.Success).ToList();
+                
+                if (failedResults.Any())
+                {
+                    var errorMsg = $"处理完成，成功: {successfulResults.Count}，失败: {failedResults.Count}";
+                    if (failedResults.Any())
+                    {
+                        errorMsg += $"\n失败文件: {string.Join(", ", failedResults.Select(r => Path.GetFileName(r.InputFile)))}";
+                    }
+                    UpdateStatus(errorMsg);
+                }
+                else
+                {
+                    var allOutputFiles = successfulResults.SelectMany(r => r.OutputFiles).ToList();
+                    UpdateStatus($"成功生成 {allOutputFiles.Count} 个ICO文件:\n{string.Join("\n", allOutputFiles.Select(Path.GetFileName))}");
+                }
             }
         }
         
@@ -354,6 +451,7 @@ namespace IconCrafter.ViewModels
             if (Size64Selected) sizes.Add(64);
             if (Size128Selected) sizes.Add(128);
             if (Size256Selected) sizes.Add(256);
+            if (Size512Selected) sizes.Add(512);
             return sizes;
         }
         

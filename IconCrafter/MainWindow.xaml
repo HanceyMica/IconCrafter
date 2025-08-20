@@ -56,6 +56,7 @@
                 <StackPanel Grid.Column="1">
                     <CheckBox x:Name="Size128CheckBox" Content="128x128" IsChecked="{Binding Size128Selected}"/>
                     <CheckBox x:Name="Size256CheckBox" Content="256x256" IsChecked="{Binding Size256Selected}"/>
+                    <CheckBox x:Name="Size512CheckBox" Content="512x512" IsChecked="{Binding Size512Selected}"/>
                 </StackPanel>
             </Grid>
         </StackPanel>
@@ -65,6 +66,13 @@
             <TextBlock Text="输出选项:" FontWeight="SemiBold" Margin="0,0,0,10"/>
             <RadioButton x:Name="SingleFileRadio" Content="生成单个包含所有尺寸的ICO文件" IsChecked="{Binding IsSingleFile}" GroupName="OutputType"/>
             <RadioButton x:Name="MultipleFilesRadio" Content="为每个尺寸生成单独的ICO文件" IsChecked="{Binding IsSingleFile, Converter={x:Static local:Converters.InverseBooleanConverter}}" GroupName="OutputType"/>
+            
+            <!-- 自定义文件名 -->
+            <StackPanel Margin="0,15,0,0" Visibility="{Binding IsSingleFile, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}">
+                <TextBlock Text="自定义文件名:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox x:Name="CustomFileNameTextBox" Text="{Binding CustomFileName}" 
+                          Margin="0,0,0,0"/>
+            </StackPanel>
         </StackPanel>
 
         <!-- 输出目录 -->
@@ -82,9 +90,25 @@
         </StackPanel>
 
         <!-- 进度指示器 -->
-        <ProgressBar x:Name="ConversionProgress" Grid.Row="5" 
-                     Visibility="{Binding IsConverting, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}"
-                     IsIndeterminate="True" Height="4" Margin="0,10"/>
+        <StackPanel Grid.Row="5" Margin="0,10" 
+                    Visibility="{Binding IsConverting, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}">
+            <TextBlock Text="{Binding ProgressText}" 
+                       HorizontalAlignment="Center" 
+                       Margin="0,0,0,5" 
+                       FontSize="12" 
+                       Foreground="#666"/>
+            <ProgressBar x:Name="ConversionProgress" 
+                         Value="{Binding ProgressValue}" 
+                         Maximum="100" 
+                         Height="6" 
+                         Background="#E0E0E0" 
+                         Foreground="#4CAF50"/>
+            <TextBlock Text="{Binding ProgressValue, StringFormat={}{0:F0}%}" 
+                       HorizontalAlignment="Center" 
+                       Margin="0,5,0,0" 
+                       FontSize="11" 
+                       Foreground="#888"/>
+        </StackPanel>
         
         <!-- 转换按钮 -->
         <Button x:Name="ConvertButton" Grid.Row="6" Content="开始转换" 
