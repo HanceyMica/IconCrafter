@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="IconCrafter.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:IconCrafter">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- App resources here -->
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

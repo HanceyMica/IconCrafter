@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "IconCrafter (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "IconCrafter (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
