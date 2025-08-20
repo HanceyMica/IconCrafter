@@ -114,10 +114,6 @@ IconCrafter/
 3. 按照安装向导完成安装
 4. 安装完成后可在开始菜单找到IconCrafter
 
-### 手动安装
-1. 下载Release_PKG文件夹中的所有文件
-2. 解压到任意目录
-3. 双击IconCrafter.exe运行
 
 ## 更新日志
 
